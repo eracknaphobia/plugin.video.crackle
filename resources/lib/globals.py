@@ -15,10 +15,11 @@ ICON = ROOTDIR+"/resources/media/icon.png"
 #Addon Settings 
 LOCAL_STRING = ADDON.getLocalizedString
 UA_CRACKLE = 'Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0'
+UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36'
 
 def mainMenu():    
     addDir('Movies','/movies',101,ICON)
-    addDir('TV','/tv',102,ICON)
+    addDir('TV','/tv',100,ICON)
 
 
 def listMovies():       
@@ -69,43 +70,102 @@ def listMovies():
 
 
 
-def listEpisodes(season):    
-    url = "http://fapi2.fxnetworks.com/androidtv/videos?filter%5Bfapi_show_id%5D=9aad7da1-093f-40f5-b371-fec4122f0d86&filter%5Bseason%5D="+season+"&limit=500&filter%5Btype%5D=episode"    
+def listShows():    
+    '''
+    GET https://ios-api-us.crackle.com/Service.svc/browse/shows/full/all/alpha-asc/US?pageSize=24&pageNumber=1&format=json HTTP/1.1
+    Host: ios-api-us.crackle.com
+    Connection: keep-alive
+    If-None-Match: "01f02ff7-6285-4399-91dd-e7474f6b2827"
+    Accept: */*
+    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
+    Accept-Language: en-us
+    Authorization: 2F29DC88BB9F2BC708D7B85779C8ED00C4BB2892|201703240126|22|1
+    Accept-Encoding: gzip, deflate
+    '''
+    url = 'http://ios-api-us.crackle.com/Service.svc/browse/shows/full/all/alpha-asc/US'
+    url += '?pageSize=500'
+    url += '&pageNumber=1'
+    url += '&format=json'
     req = urllib2.Request(url)
     req.add_header("Connection", "keep-alive")
     req.add_header("Accept", "*/*")
     req.add_header("Accept-Encoding", "deflate")
     req.add_header("Accept-Language", "en-us")
-    req.add_header("Connection", "keep-alive")
-    req.add_header("Authentication", "androidtv:a4y4o0e01jh27dsyrrgpvo6d1wvpravc2c4szpp4")
-    req.add_header("User-Agent", UA_FX)
+    req.add_header("Connection", "keep-alive")    
+    req.add_header("User-Agent", UA_CRACKLE)
     response = urllib2.urlopen(req)   
     json_source = json.load(response)                       
     response.close() 
     
-    for episode in reversed(json_source['videos']):            
-        title = episode['name']
-        #Default video type is 16x9
-        url = episode['video_urls']['16x9']['en_US']['video_url']         
-        try: url = episode['video_urls'][RATIO]['en_US']['video_url']
-        except: pass
-        if COMMENTARY == 'true':
-            try: url = episode['video_urls'][RATIO]['en_US']['video_url_commentary']
-            except: pass
-        icon = episode['img_url']
-        desc = episode['description']
-        duration = episode['duration']
-        aired = episode['airDate']
-        season = str(episode['season']).zfill(2) 
-        episode = str(episode['episode']).zfill(2)         
 
-        info = {'plot':desc,'tvshowtitle':LOCAL_STRING(30000), 'season':season, 'episode':episode, 'title':title,'originaltitle':title,'duration':duration,'aired':aired,'genre':LOCAL_STRING(30002)}
-        
-        addEpisode(title,url,title,icon,FANART,info)
+    for show in json_source['Entries']:        
+        title = show['Title']
+        url = str(show['ID'])
+        icon = show['ChannelArtTileLarge']
+        fanart = show['Images']['Img_1920x1080']
+        info = None
+        info = {'plot':show['Description'],
+                'genre':show['Genre'], 
+                'year':show['ReleaseYear'], 
+                'mpaa':show['Rating'], 
+                'title':title,
+                'originaltitle':title,
+                'duration':show['DurationInSeconds']
+                }
 
+        #addStream(title,url,'tvshows',icon,fanart,info)
+        addDir(title,url,103,icon,fanart,info)
 
 
-def getStream(org_id):
+def getEpisodes(channel):    
+    '''
+    GET https://ios-api-us.crackle.com/Service.svc/channel/1515/playlists/all/US?format=json HTTP/1.1
+    Host: ios-api-us.crackle.com
+    Connection: keep-alive
+    Accept: */*
+    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
+    Accept-Language: en-us
+    Authorization: 36A76467B6DD721D3BB86257E564D3315F79EC1D|201703240126|22|1
+    Accept-Encoding: gzip, deflate
+    '''
+    url = 'https://ios-api-us.crackle.com/Service.svc/channel/'+str(channel)+'/playlists/all/US?format=json'
+    req = urllib2.Request(url)
+    req.add_header("Connection", "keep-alive")
+    req.add_header("Accept", "*/*")
+    req.add_header("Accept-Encoding", "deflate")
+    req.add_header("Accept-Language", "en-us")
+    req.add_header("Connection", "keep-alive")    
+    req.add_header("User-Agent", UA_CRACKLE)
+    response = urllib2.urlopen(req)   
+    json_source = json.load(response)                       
+    response.close() 
+    
+
+    for episode in json_source['Playlists'][0]['Items']:
+        episode = episode['MediaInfo']
+        title = episode['Title']
+        id = str(episode['Id'])
+        icon = episode['Images']['Img_460x460']
+        fanart = episode['Images']['Img_1920x1080']
+        info = None
+        info = {'plot':episode['Description'],
+                #'genre':episode['Genre'], 
+                'year':episode['ReleaseYear'], 
+                'mpaa':episode['Rating'], 
+                'title':title,
+                'originaltitle':title,
+                'duration':episode['Duration'],
+                'season':episode['Season'],
+                'episode':episode['Episode']
+                }
+
+        addStream(title,id,'tvshows',icon,fanart,info)
+        #addDir(title,url,103,icon,fanart,info)
+
+
+
+
+def getStream(id):
     '''
     Get playlist
     GET https://ios-api-us.crackle.com/Service.svc/channel/451/playlists/all/US?format=json HTTP/1.1
@@ -117,7 +177,7 @@ def getStream(org_id):
     Accept-Language: en-us
     Authorization: BCF1ED28805495CE259DE7D3DEC2676F1FDEA7DB|201703232219|22|1
     Accept-Encoding: gzip, deflate
-    '''
+    
     url = 'http://ios-api-us.crackle.com/Service.svc/channel/'+org_id+'/playlists/all/US?format=json'
     req = urllib2.Request(url)
     req.add_header("Accept", "*/*")
@@ -130,7 +190,7 @@ def getStream(org_id):
     response.close()  
     media_id = str(json_source['Playlists'][0]['Items'][0]['MediaInfo']['Id'])
     playlist_id = str(json_source['Playlists'][0]['PlaylistId'])
-    
+    '''
     
     '''
     get media id
@@ -171,14 +231,15 @@ def getStream(org_id):
     Accept-Encoding: gzip, deflate
     '''
     #url = 'https://ios-api-us.crackle.com/Service.svc/details/media/2489564/US?format=json'    
-    url = 'https://ios-api-us.crackle.com/Service.svc/details/media/'+playlist_id+'/US?format=json'
+    #url = 'http://ios-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'    
+    url = 'http://web-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'
     
     req = urllib2.Request(url)
     req.add_header("Accept", "*/*")
     req.add_header("Accept-Encoding", "deflate")
     req.add_header("Accept-Language", "en-us")
     req.add_header("Connection", "keep-alive")        
-    req.add_header("User-Agent", UA_CRACKLE)
+    req.add_header("User-Agent", UA_WEB)
     #req.add_header("Authorization", "823CA68EF08AC9F42AA086E9F63F6753739792D8|201703232253|22|1")
     #req.add_header("Cookie", "GR=348")
     response = urllib2.urlopen(req)   
@@ -198,9 +259,9 @@ def getStream(org_id):
         
 
 
-def addStream(name, link_url, stream_type, icon,fanart,info=None):
+def addStream(name, id, stream_type, icon,fanart,info=None):
     ok=True
-    u=sys.argv[0]+"?id="+urllib.quote_plus(link_url)+"&mode="+str(102)
+    u=sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(102)
     liz=xbmcgui.ListItem(name)
     liz.setArt({'icon': ICON, 'thumb': icon, 'fanart': fanart})    
     liz.setProperty("IsPlayable", "true")
@@ -212,10 +273,10 @@ def addStream(name, link_url, stream_type, icon,fanart,info=None):
     return ok
 
 
-def addDir(name,url,mode,iconimage,fanart=None,info=None): 
+def addDir(name,id,mode,iconimage,fanart=None,info=None): 
     params = get_params()      
     ok=True    
-    u=sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)
+    u=sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
     liz=xbmcgui.ListItem(name)
     liz.setArt({'icon': ICON, 'thumb': iconimage, 'fanart': fanart})    
     if info != None:

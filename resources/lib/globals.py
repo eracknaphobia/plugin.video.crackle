@@ -2,7 +2,8 @@ import sys, os
 import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 import urllib, urllib2
 import json
-import base64
+import base64, hmac, hashlib
+from datetime import datetime
 
 
 
@@ -128,7 +129,7 @@ def getEpisodes(channel):
     Authorization: 36A76467B6DD721D3BB86257E564D3315F79EC1D|201703240126|22|1
     Accept-Encoding: gzip, deflate
     '''
-    url = 'https://ios-api-us.crackle.com/Service.svc/channel/'+str(channel)+'/playlists/all/US?format=json'
+    url = 'http://ios-api-us.crackle.com/Service.svc/channel/'+str(channel)+'/playlists/all/US?format=json'
     req = urllib2.Request(url)
     req.add_header("Connection", "keep-alive")
     req.add_header("Accept", "*/*")
@@ -165,7 +166,8 @@ def getEpisodes(channel):
 
 
 
-def getStream(id):
+def getStream(id):   
+
     '''
     Get playlist
     GET https://ios-api-us.crackle.com/Service.svc/channel/451/playlists/all/US?format=json HTTP/1.1
@@ -230,18 +232,24 @@ def getStream(id):
     Authorization: 127DE6571887D314D5BF86EC39DABA4B7CB2C80B|201703231759|22|1
     Accept-Encoding: gzip, deflate
     '''
-    #url = 'https://ios-api-us.crackle.com/Service.svc/details/media/2489564/US?format=json'    
-    #url = 'http://ios-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'    
-    url = 'http://web-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'
+    #url = 'https://ios-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'    
+    #url = 'https://wp-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'    
+    url = 'http://android-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'
+
+    xbmc.log('TEST!!!')
+    xbmc.log(url)
     
+
+
     req = urllib2.Request(url)
     req.add_header("Accept", "*/*")
     req.add_header("Accept-Encoding", "deflate")
     req.add_header("Accept-Language", "en-us")
     req.add_header("Connection", "keep-alive")        
-    req.add_header("User-Agent", UA_WEB)
+    req.add_header("User-Agent", UA_CRACKLE)
     #req.add_header("Authorization", "823CA68EF08AC9F42AA086E9F63F6753739792D8|201703232253|22|1")
-    #req.add_header("Cookie", "GR=348")
+    req.add_header("Authorization", getAuth(url))
+    req.add_header("Cookie", "GR=348")
     response = urllib2.urlopen(req)   
     json_source = json.load(response)                       
     response.close()  
@@ -257,6 +265,66 @@ def getStream(id):
     listitem = xbmcgui.ListItem(path=stream_url)
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem)
         
+
+def getAuth(url):
+    '''
+    String encodedUrl = null;
+    String timeStamp = createTimeStampString(new Date());
+    try {
+        encodedUrl = calcHmac(url + "|" + timeStamp) + "|" + timeStamp + "|" + ApplicationConstants.getVendorID();
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return encodedUrl;
+    '''
+    
+    '''
+    SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmm");
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    return df.format(date);
+    '''
+    
+    '''
+    SecretKeySpec sk = new SecretKeySpec(ApplicationConstants.getVendorKey().getBytes(), "HmacMD5");
+    Mac mac = Mac.getInstance("HmacMD5");
+    mac.init(sk);
+    return byteToString(mac.doFinal(src.getBytes()));
+
+    public static String getVendorKey() {
+    if (!Application.getInstance().isTablet()) {
+        return PHONE_VENDOR_KEY;
+    }
+    if (Application.isAmazonFireTV()) {
+        return "JLMLKPUFQNZYTZQX";
+    }
+    if (Application.isFanhattan()) {
+        return "QWMJCYOZUYONPXPR";
+    }
+    return "MIRNPSEZYDAQASLX";
+    }
+    '''
+    phone_vendor_key = 'QWXRHTCJPOGKBJKO'    
+    #phone_vendor_key = '52AE53EBA1B0E1578E7DE64B53E96855'
+    phone_vendor_key = hashlib.md5(bytearray(phone_vendor_key)).digest()
+    vendor_id = '24'
+    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M')
+    temp = url+"|"+timestamp        
+    test = hmac.new(phone_vendor_key,  temp, hashlib.sha1)    
+    encodedUrl = str(test.hexdigest()).upper() + "|" + timestamp + "|" + vendor_id
+    #Should be 40 in length
+    xbmc.log(encodedUrl)
+
+    return encodedUrl
+
+
+    '''
+    nonce = str(uuid.uuid4())
+    epochtime = str(int(time.time() * 1000))        
+    authorization = request_method + " requestor_id="+self.requestor_id+", nonce="+nonce+", signature_method=HMAC-SHA1, request_time="+epochtime+", request_uri="+request_uri
+    signature = hmac.new(self.private_key , authorization, hashlib.sha1)
+    signature = base64.b64encode(signature.digest())
+    authorization += ", public_key="+self.public_key+", signature="+signature
+    '''
 
 
 def addStream(name, id, stream_type, icon,fanart,info=None):

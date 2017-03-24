@@ -105,8 +105,35 @@ def listEpisodes(season):
 
 
 
-def getStream(curation_id):
+def getStream(org_id):
     '''
+    Get playlist
+    GET https://ios-api-us.crackle.com/Service.svc/channel/451/playlists/all/US?format=json HTTP/1.1
+    Host: ios-api-us.crackle.com
+    Accept: */*
+    Connection: keep-alive
+    Cookie: GR=348
+    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
+    Accept-Language: en-us
+    Authorization: BCF1ED28805495CE259DE7D3DEC2676F1FDEA7DB|201703232219|22|1
+    Accept-Encoding: gzip, deflate
+    '''
+    url = 'http://ios-api-us.crackle.com/Service.svc/channel/'+org_id+'/playlists/all/US?format=json'
+    req = urllib2.Request(url)
+    req.add_header("Accept", "*/*")
+    req.add_header("Accept-Encoding", "deflate")
+    req.add_header("Accept-Language", "en-us")
+    req.add_header("Connection", "keep-alive")        
+    req.add_header("User-Agent", UA_CRACKLE)
+    response = urllib2.urlopen(req)   
+    json_source = json.load(response)                       
+    response.close()  
+    media_id = str(json_source['Playlists'][0]['Items'][0]['MediaInfo']['Id'])
+    playlist_id = str(json_source['Playlists'][0]['PlaylistId'])
+    
+    
+    '''
+    get media id
     GET https://ios-api-us.crackle.com/Service.svc/curation/30534/US?format=json HTTP/1.1
     Host: ios-api-us.crackle.com
     Accept: */*
@@ -117,10 +144,10 @@ def getStream(curation_id):
     Authorization: 6C34892ACD3B811EA91807E07BE7046E19DAA9D7|201703232017|22|1
     Accept-Encoding: gzip, deflate
     User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
-    '''
-    url = 'http://ios-api-us.crackle.com/Service.svc/curation/'+curation_id+'/US' 
-    url += '?format=json'
     
+    #url = 'http://ios-api-us.crackle.com/Service.svc/curation/'+curation_id+'/US' 
+    #url += '?format=json'    
+    url = 'https://ios-api-us.crackle.com/Service.svc/curation/'+curation_id+'/US?format=json'
     req = urllib2.Request(url)
     req.add_header("Accept", "*/*")
     req.add_header("Accept-Encoding", "deflate")
@@ -130,7 +157,9 @@ def getStream(curation_id):
     response = urllib2.urlopen(req)   
     json_source = json.load(response)                       
     response.close()  
-    media_id = json_source['Result']['Items'][0]['MediaInfo']['Id']
+    media_id = str(json_source['Result']['Items'][0]['MediaInfo']['Id'])
+    '''
+
     '''
     GET https://ios-api-us.crackle.com/Service.svc/details/media/2489564/US?format=json HTTP/1.1
     Host: ios-api-us.crackle.com
@@ -141,9 +170,8 @@ def getStream(curation_id):
     Authorization: 127DE6571887D314D5BF86EC39DABA4B7CB2C80B|201703231759|22|1
     Accept-Encoding: gzip, deflate
     '''
-    #url = 'http://ios-api-us.crackle.com/Service.svc/details/media/2489564/US'    
-    url = 'http://ios-api-us.crackle.com/Service.svc/details/media/'+media_id+'/US'  
-    url += '?format=json'
+    #url = 'https://ios-api-us.crackle.com/Service.svc/details/media/2489564/US?format=json'    
+    url = 'https://ios-api-us.crackle.com/Service.svc/details/media/'+playlist_id+'/US?format=json'
     
     req = urllib2.Request(url)
     req.add_header("Accept", "*/*")
@@ -151,6 +179,8 @@ def getStream(curation_id):
     req.add_header("Accept-Language", "en-us")
     req.add_header("Connection", "keep-alive")        
     req.add_header("User-Agent", UA_CRACKLE)
+    #req.add_header("Authorization", "823CA68EF08AC9F42AA086E9F63F6753739792D8|201703232253|22|1")
+    #req.add_header("Cookie", "GR=348")
     response = urllib2.urlopen(req)   
     json_source = json.load(response)                       
     response.close()  

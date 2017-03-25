@@ -5,51 +5,34 @@ import json
 import base64, hmac, hashlib
 from datetime import datetime
 
-
-
 addon_handle = int(sys.argv[1])
-ADDON = xbmcaddon.Addon(id='plugin.video.crackle')
+ADDON = xbmcaddon.Addon()
 ROOTDIR = ADDON.getAddonInfo('path')
 FANART = ROOTDIR+"/resources/media/fanart.jpg"
-ICON = ROOTDIR+"/resources/media/icon.png"
+ICON = os.path.join(ROOTDIR,"/resources/media/icon.png")
+
 
 #Addon Settings 
 LOCAL_STRING = ADDON.getLocalizedString
 UA_CRACKLE = 'Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0'
 UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36'
+UA_ANDROID = 'Android 4.1.1; E270BSA; Crackle 4.4.5.0'
+PRIVATE_KEY = 'MIRNPSEZYDAQASLX'  
+VENDOR_ID = '25'
+BASE_URL = 'http://android-tv-api-us.crackle.com/Service.svc'
+
 
 def mainMenu():    
     addDir('Movies','/movies',101,ICON)
     addDir('TV','/tv',100,ICON)
 
 
-def listMovies():       
-    '''
-    GET https://ios-api-us.crackle.com/Service.svc/browse/movies/full/all/alpha-asc/US?pageSize=24&pageNumber=1&format=json HTTP/1.1
-    Host: ios-api-us.crackle.com
-    Accept: */*
-    Connection: keep-alive
-    If-None-Match: "6a673366-2e5e-493e-98ae-28ead1f5b50e"
-    Cookie: GR=348
-    Accept-Language: en-us
-    Authorization: 0C67DB845C62EB7437EF00F68376CE784A382046|201703231633|22|1
-    Accept-Encoding: gzip, deflate
-    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
-    '''
-    url = 'http://ios-api-us.crackle.com/Service.svc/browse/movies/full/all/alpha-asc/US'
+def listMovies():           
+    url = '/browse/movies/full/all/alpha-asc/US'
     url += '?pageSize=500'
     url += '&pageNumber=1'
     url += '&format=json'
-    req = urllib2.Request(url)
-    req.add_header("Connection", "keep-alive")
-    req.add_header("Accept", "*/*")
-    req.add_header("Accept-Encoding", "deflate")
-    req.add_header("Accept-Language", "en-us")
-    req.add_header("Connection", "keep-alive")    
-    req.add_header("User-Agent", UA_CRACKLE)
-    response = urllib2.urlopen(req)   
-    json_source = json.load(response)                       
-    response.close() 
+    json_source = jsonRequest(url)
     
 
     for movie in json_source['Entries']:        
@@ -71,33 +54,12 @@ def listMovies():
 
 
 
-def listShows():    
-    '''
-    GET https://ios-api-us.crackle.com/Service.svc/browse/shows/full/all/alpha-asc/US?pageSize=24&pageNumber=1&format=json HTTP/1.1
-    Host: ios-api-us.crackle.com
-    Connection: keep-alive
-    If-None-Match: "01f02ff7-6285-4399-91dd-e7474f6b2827"
-    Accept: */*
-    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
-    Accept-Language: en-us
-    Authorization: 2F29DC88BB9F2BC708D7B85779C8ED00C4BB2892|201703240126|22|1
-    Accept-Encoding: gzip, deflate
-    '''
-    url = 'http://ios-api-us.crackle.com/Service.svc/browse/shows/full/all/alpha-asc/US'
+def listShows():        
+    url = '/browse/shows/full/all/alpha-asc/US'
     url += '?pageSize=500'
     url += '&pageNumber=1'
     url += '&format=json'
-    req = urllib2.Request(url)
-    req.add_header("Connection", "keep-alive")
-    req.add_header("Accept", "*/*")
-    req.add_header("Accept-Encoding", "deflate")
-    req.add_header("Accept-Language", "en-us")
-    req.add_header("Connection", "keep-alive")    
-    req.add_header("User-Agent", UA_CRACKLE)
-    response = urllib2.urlopen(req)   
-    json_source = json.load(response)                       
-    response.close() 
-    
+    json_source = jsonRequest(url)
 
     for show in json_source['Entries']:        
         title = show['Title']
@@ -113,34 +75,13 @@ def listShows():
                 'originaltitle':title,
                 'duration':show['DurationInSeconds']
                 }
-
-        #addStream(title,url,'tvshows',icon,fanart,info)
-        addDir(title,url,103,icon,fanart,info)
-
-
-def getEpisodes(channel):    
-    '''
-    GET https://ios-api-us.crackle.com/Service.svc/channel/1515/playlists/all/US?format=json HTTP/1.1
-    Host: ios-api-us.crackle.com
-    Connection: keep-alive
-    Accept: */*
-    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
-    Accept-Language: en-us
-    Authorization: 36A76467B6DD721D3BB86257E564D3315F79EC1D|201703240126|22|1
-    Accept-Encoding: gzip, deflate
-    '''
-    url = 'http://ios-api-us.crackle.com/Service.svc/channel/'+str(channel)+'/playlists/all/US?format=json'
-    req = urllib2.Request(url)
-    req.add_header("Connection", "keep-alive")
-    req.add_header("Accept", "*/*")
-    req.add_header("Accept-Encoding", "deflate")
-    req.add_header("Accept-Language", "en-us")
-    req.add_header("Connection", "keep-alive")    
-    req.add_header("User-Agent", UA_CRACKLE)
-    response = urllib2.urlopen(req)   
-    json_source = json.load(response)                       
-    response.close() 
     
+        addDir(title,url,102,icon,fanart,info)
+
+
+def getEpisodes(channel):        
+    url = '/channel/'+channel+'/playlists/all/US?format=json'
+    json_source = jsonRequest(url)    
 
     for episode in json_source['Playlists'][0]['Items']:
         episode = episode['MediaInfo']
@@ -160,99 +101,19 @@ def getEpisodes(channel):
                 'episode':episode['Episode']
                 }
 
-        addStream(title,id,'tvshows',icon,fanart,info)
-        #addDir(title,url,103,icon,fanart,info)
+        addStream(title,id,'tvshows',icon,fanart,info)        
 
 
+def getMovieID(channel):    
+    url = '/channel/'+str(channel)+'/playlists/all/US?format=json'
+    json_source = jsonRequest(url)
+
+    return str(json_source['Playlists'][0]['Items'][0]['MediaInfo']['Id'])
 
 
-def getStream(id):   
-
-    '''
-    Get playlist
-    GET https://ios-api-us.crackle.com/Service.svc/channel/451/playlists/all/US?format=json HTTP/1.1
-    Host: ios-api-us.crackle.com
-    Accept: */*
-    Connection: keep-alive
-    Cookie: GR=348
-    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
-    Accept-Language: en-us
-    Authorization: BCF1ED28805495CE259DE7D3DEC2676F1FDEA7DB|201703232219|22|1
-    Accept-Encoding: gzip, deflate
-    
-    url = 'http://ios-api-us.crackle.com/Service.svc/channel/'+org_id+'/playlists/all/US?format=json'
-    req = urllib2.Request(url)
-    req.add_header("Accept", "*/*")
-    req.add_header("Accept-Encoding", "deflate")
-    req.add_header("Accept-Language", "en-us")
-    req.add_header("Connection", "keep-alive")        
-    req.add_header("User-Agent", UA_CRACKLE)
-    response = urllib2.urlopen(req)   
-    json_source = json.load(response)                       
-    response.close()  
-    media_id = str(json_source['Playlists'][0]['Items'][0]['MediaInfo']['Id'])
-    playlist_id = str(json_source['Playlists'][0]['PlaylistId'])
-    '''
-    
-    '''
-    get media id
-    GET https://ios-api-us.crackle.com/Service.svc/curation/30534/US?format=json HTTP/1.1
-    Host: ios-api-us.crackle.com
-    Accept: */*
-    Connection: keep-alive
-    If-None-Match: "41776591-3885-408a-a4ee-020a80c84025"
-    Cookie: GR=348
-    Accept-Language: en-us
-    Authorization: 6C34892ACD3B811EA91807E07BE7046E19DAA9D7|201703232017|22|1
-    Accept-Encoding: gzip, deflate
-    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
-    
-    #url = 'http://ios-api-us.crackle.com/Service.svc/curation/'+curation_id+'/US' 
-    #url += '?format=json'    
-    url = 'https://ios-api-us.crackle.com/Service.svc/curation/'+curation_id+'/US?format=json'
-    req = urllib2.Request(url)
-    req.add_header("Accept", "*/*")
-    req.add_header("Accept-Encoding", "deflate")
-    req.add_header("Accept-Language", "en-us")
-    req.add_header("Connection", "keep-alive")        
-    req.add_header("User-Agent", UA_CRACKLE)
-    response = urllib2.urlopen(req)   
-    json_source = json.load(response)                       
-    response.close()  
-    media_id = str(json_source['Result']['Items'][0]['MediaInfo']['Id'])
-    '''
-
-    '''
-    GET https://ios-api-us.crackle.com/Service.svc/details/media/2489564/US?format=json HTTP/1.1
-    Host: ios-api-us.crackle.com
-    Connection: keep-alive
-    Accept: */*
-    User-Agent: Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0
-    Accept-Language: en-us
-    Authorization: 127DE6571887D314D5BF86EC39DABA4B7CB2C80B|201703231759|22|1
-    Accept-Encoding: gzip, deflate
-    '''
-    #url = 'https://ios-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'    
-    #url = 'https://wp-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'    
-    url = 'http://android-api-us.crackle.com/Service.svc/details/media/'+id+'/US?format=json'
-
-    xbmc.log('TEST!!!')
-    xbmc.log(url)
-    
-
-
-    req = urllib2.Request(url)
-    req.add_header("Accept", "*/*")
-    req.add_header("Accept-Encoding", "deflate")
-    req.add_header("Accept-Language", "en-us")
-    req.add_header("Connection", "keep-alive")        
-    req.add_header("User-Agent", UA_CRACKLE)
-    #req.add_header("Authorization", "823CA68EF08AC9F42AA086E9F63F6753739792D8|201703232253|22|1")
-    req.add_header("Authorization", getAuth(url))
-    req.add_header("Cookie", "GR=348")
-    response = urllib2.urlopen(req)   
-    json_source = json.load(response)                       
-    response.close()  
+def getStream(id):           
+    url = '/details/media/'+id+'/US?format=json'
+    json_source = jsonRequest(url)
 
     
     for stream in json_source['MediaURLs']:
@@ -266,70 +127,35 @@ def getStream(id):
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem)
         
 
-def getAuth(url):
-    '''
-    String encodedUrl = null;
-    String timeStamp = createTimeStampString(new Date());
-    try {
-        encodedUrl = calcHmac(url + "|" + timeStamp) + "|" + timeStamp + "|" + ApplicationConstants.getVendorID();
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-    return encodedUrl;
-    '''
+def jsonRequest(url):    
+    url = BASE_URL + url
+    req = urllib2.Request(url)
+    req.add_header("Connection", "keep-alive")        
+    req.add_header("User-Agent", UA_ANDROID)    
+    req.add_header("Authorization", getAuth(url))
     
-    '''
-    SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmm");
-    df.setTimeZone(TimeZone.getTimeZone("UTC"));
-    return df.format(date);
-    '''
-    
-    '''
-    SecretKeySpec sk = new SecretKeySpec(ApplicationConstants.getVendorKey().getBytes(), "HmacMD5");
-    Mac mac = Mac.getInstance("HmacMD5");
-    mac.init(sk);
-    return byteToString(mac.doFinal(src.getBytes()));
+    response = urllib2.urlopen(req)   
+    json_source = json.load(response)                       
+    response.close() 
 
-    public static String getVendorKey() {
-    if (!Application.getInstance().isTablet()) {
-        return PHONE_VENDOR_KEY;
-    }
-    if (Application.isAmazonFireTV()) {
-        return "JLMLKPUFQNZYTZQX";
-    }
-    if (Application.isFanhattan()) {
-        return "QWMJCYOZUYONPXPR";
-    }
-    return "MIRNPSEZYDAQASLX";
-    }
-    '''
-    phone_vendor_key = 'QWXRHTCJPOGKBJKO'    
-    #phone_vendor_key = '52AE53EBA1B0E1578E7DE64B53E96855'
-    phone_vendor_key = hashlib.md5(bytearray(phone_vendor_key)).digest()
-    vendor_id = '24'
+    return json_source
+
+
+def calcHmac(src):    
+    return hmac.new(PRIVATE_KEY, src, hashlib.md5).hexdigest()
+
+
+def getAuth(url):        
     timestamp = datetime.utcnow().strftime('%Y%m%d%H%M')
-    temp = url+"|"+timestamp        
-    test = hmac.new(phone_vendor_key,  temp, hashlib.sha1)    
-    encodedUrl = str(test.hexdigest()).upper() + "|" + timestamp + "|" + vendor_id
-    #Should be 40 in length
-    xbmc.log(encodedUrl)
+    encoded_url = str(calcHmac(url+"|"+timestamp)).upper() + "|" + timestamp + "|" + VENDOR_ID
+    xbmc.log(encoded_url)
 
-    return encodedUrl
-
-
-    '''
-    nonce = str(uuid.uuid4())
-    epochtime = str(int(time.time() * 1000))        
-    authorization = request_method + " requestor_id="+self.requestor_id+", nonce="+nonce+", signature_method=HMAC-SHA1, request_time="+epochtime+", request_uri="+request_uri
-    signature = hmac.new(self.private_key , authorization, hashlib.sha1)
-    signature = base64.b64encode(signature.digest())
-    authorization += ", public_key="+self.public_key+", signature="+signature
-    '''
+    return encoded_url
 
 
 def addStream(name, id, stream_type, icon,fanart,info=None):
     ok=True
-    u=sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(102)
+    u=sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(103)+"&type="+urllib.quote_plus(stream_type)
     liz=xbmcgui.ListItem(name)
     liz.setArt({'icon': ICON, 'thumb': icon, 'fanart': fanart})    
     liz.setProperty("IsPlayable", "true")

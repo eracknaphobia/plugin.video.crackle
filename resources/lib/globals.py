@@ -1,14 +1,14 @@
 import sys, os
-import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 import urllib, urllib2
 import json
 import base64, hmac, hashlib
-from datetime import datetime
+from time import gmtime, strftime
+import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
 addon_handle = int(sys.argv[1])
 ADDON = xbmcaddon.Addon()
 ROOTDIR = ADDON.getAddonInfo('path')
-FANART = ROOTDIR+"/resources/media/fanart.jpg"
+FANART = os.path.join(ROOTDIR,"/resources/media/fanart.jpg")
 ICON = os.path.join(ROOTDIR,"/resources/media/icon.png")
 
 
@@ -17,7 +17,7 @@ LOCAL_STRING = ADDON.getLocalizedString
 UA_CRACKLE = 'Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0'
 UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36'
 UA_ANDROID = 'Android 4.1.1; E270BSA; Crackle 4.4.5.0'
-PRIVATE_KEY = 'MIRNPSEZYDAQASLX'
+PRIVATE_KEY = 'TUlSTlBTRVpZREFRQVNMWA=='
 VENDOR_ID = '25'
 BASE_URL = 'http://android-tv-api-us.crackle.com/Service.svc'
 
@@ -142,11 +142,12 @@ def jsonRequest(url):
 
 
 def calcHmac(src):
-    return hmac.new(PRIVATE_KEY, src, hashlib.md5).hexdigest()
+    #return hmac.new(PRIVATE_KEY, src, hashlib.md5).hexdigest()
+    return hmac.new(base64.b64decode(PRIVATE_KEY), src, hashlib.md5).hexdigest()
 
 
 def getAuth(url):
-    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M')
+    timestamp = strftime('%Y%m%d%H%M', gmtime())
     encoded_url = str(calcHmac(url+"|"+timestamp)).upper() + "|" + timestamp + "|" + VENDOR_ID
 
     return encoded_url

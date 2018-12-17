@@ -16,14 +16,15 @@ LOCAL_STRING = ADDON.getLocalizedString
 UA_CRACKLE = 'Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0'
 UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36'
 UA_ANDROID = 'Android 4.1.1; E270BSA; Crackle 4.4.5.0'
-PRIVATE_KEY = 'TUlSTlBTRVpZREFRQVNMWA=='
-VENDOR_ID = '25'
-BASE_URL = 'http://android-tv-api-us.crackle.com/Service.svc'
+#PARTNER_KEY = 'TUlSTlBTRVpZREFRQVNMWA=='
+PARTNER_KEY = 'Vk5aUUdYV0ZIVFBNR1ZWVg=='
+PARTNER_ID = '77'
+BASE_URL = 'https://androidtv-api-us.crackle.com/Service.svc'
 
 
 def main_menu():
     add_dir('Movies', '/movies', 101, ICON)
-    add_dir('TV', '/tv', 100, ICON)
+    add_dir('TV', '/tv', 99, ICON)
 
 
 def list_movies():
@@ -50,11 +51,33 @@ def list_movies():
         add_stream(title,url,'movies',icon,fanart,info)
 
 
-def list_shows():
-    url = '/browse/shows/full/all/alpha-asc/US'
-    url += '?pageSize=500'
-    url += '&pageNumber=1'
-    url += '&format=json'
+def list_show_genre():
+    """
+    GET https://androidtv-api-us.crackle.com/Service.svc/genres/shows/all/US?format=json HTTP/1.1
+    Host: androidtv-api-us.crackle.com
+    Connection: keep-alive
+    Accept: application/json
+    Origin: http://crackleott.s3.amazonaws.com
+    Authorization: 3B832EC0C254F125167AAB2C21A592A41CAFD036|201811161206|77|1
+    User-Agent: Mozilla/5.0 (Linux; Android 6.0.1; Hub Build/MHC19J; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/70.0.3538.110 Safari/537.36
+    Referer: http://crackleott.s3.amazonaws.com/
+    Accept-Encoding: gzip, deflate
+    Accept-Language: en-US
+    X-Requested-With: com.crackle.androidtv
+    :return:
+    """
+    url = '/genres/shows/all/US?format=json'
+    json_source = json_request(url)
+    for genre in json_source['Items']:
+        title = genre['Name']
+        add_dir(name=title, mode=100, genre_id=genre['ID'])
+
+
+def list_shows(genre_id):
+    url = '/browse/shows/full/%s/alpha-asc/US/1000/1?format=json' % genre_id
+    # url += '?pageSize=500'
+    # url += '&pageNumber=1'
+    # url += '&format=json'
     json_source = json_request(url)
 
     for show in json_source['Entries']:
@@ -132,35 +155,28 @@ def get_stream(id):
 
 def json_request(url):
     url = BASE_URL + url
-    '''
-    req = urllib2.Request(url)
-    req.add_header("Connection", "keep-alive")
-    req.add_header("User-Agent", UA_ANDROID)
-    req.add_header("Authorization", getAuth(url))
-
-    response = urllib2.urlopen(req)
-    json_source = json.load(response)
-    response.close()
-    '''
-
+    xbmc.log(url)
     headers = {
         'Connection': 'keep-alive',
         'User-Agent': UA_ANDROID,
-        'Authorization': get_auth(url)
+        'Authorization': get_auth(url),
+        'X-Requested-With': 'com.crackle.androidtv'
     }
 
-    r = requests.get(url,headers=headers)
+    r = requests.get(url, headers=headers, verify=False)
 
     return r.json()
 
 
 def calc_hmac(src):
-    return hmac.new(base64.b64decode(PRIVATE_KEY), src, hashlib.md5).hexdigest()
+    # return hmac.new(base64.b64decode(PARTNER_KEY), src, hashlib.md5).hexdigest()
+    return hmac.new(base64.b64decode(PARTNER_KEY), src, hashlib.sha1).hexdigest()
 
 
 def get_auth(url):
     timestamp = strftime('%Y%m%d%H%M', gmtime())
-    encoded_url = str(calc_hmac(url+"|"+timestamp)).upper() + "|" + timestamp + "|" + VENDOR_ID
+    # encoded_url = str(calc_hmac(url+"|"+timestamp)).upper() + "|" + timestamp + "|" + PARTNER_ID
+    encoded_url = '%s|%s|%s|1' % (calc_hmac(url + "|" + timestamp).upper(), timestamp, PARTNER_ID)
 
     return encoded_url
 
@@ -180,13 +196,14 @@ def add_stream(name, id, stream_type, icon, fanart, info=None):
     return ok
 
 
-def add_dir(name,id,mode,icon,fanart=None,info=None):
+def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None):
     xbmc.log(ROOTDIR)
     xbmc.log("ICON IMAGE = "+icon)
     ok = True
-    u=sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
+    u = sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
+    if genre_id is not None: u += "&genre_id=%s" % genre_id
     liz=xbmcgui.ListItem(name)
-    if fanart == None: fanart = FANART
+    if fanart is not None: fanart = FANART
     liz.setArt({'icon': icon, 'thumb': icon, 'fanart': fanart})
     if info is not None:
         liz.setInfo( type="Video", infoLabels=info)

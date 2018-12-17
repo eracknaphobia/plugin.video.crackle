@@ -23,15 +23,16 @@ BASE_URL = 'https://androidtv-api-us.crackle.com/Service.svc'
 
 
 def main_menu():
-    add_dir('Movies', '/movies', 101, ICON)
-    add_dir('TV', '/tv', 99, ICON)
+    add_dir('Movies', 'movies', 99, ICON)
+    add_dir('TV', 'shows', 99, ICON)
 
 
-def list_movies():
-    url = '/browse/movies/full/all/alpha-asc/US'
-    url += '?pageSize=500'
-    url += '&pageNumber=1'
-    url += '&format=json'
+def list_movies(genre_id):
+    url = '/browse/movies/full/%s/alpha-asc/US?format=json' % genre_id
+    # url = '/browse/movies/full/all/alpha-asc/US'
+    # url += '?pageSize=500'
+    # url += '&pageNumber=1'
+    # url += '&format=json'
     json_source = json_request(url)
 
     for movie in json_source['Entries']:
@@ -51,26 +52,14 @@ def list_movies():
         add_stream(title,url,'movies',icon,fanart,info)
 
 
-def list_show_genre():
-    """
-    GET https://androidtv-api-us.crackle.com/Service.svc/genres/shows/all/US?format=json HTTP/1.1
-    Host: androidtv-api-us.crackle.com
-    Connection: keep-alive
-    Accept: application/json
-    Origin: http://crackleott.s3.amazonaws.com
-    Authorization: 3B832EC0C254F125167AAB2C21A592A41CAFD036|201811161206|77|1
-    User-Agent: Mozilla/5.0 (Linux; Android 6.0.1; Hub Build/MHC19J; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/70.0.3538.110 Safari/537.36
-    Referer: http://crackleott.s3.amazonaws.com/
-    Accept-Encoding: gzip, deflate
-    Accept-Language: en-US
-    X-Requested-With: com.crackle.androidtv
-    :return:
-    """
-    url = '/genres/shows/all/US?format=json'
+def list_genre(id):
+    url = '/genres/%s/all/US?format=json' % id
     json_source = json_request(url)
     for genre in json_source['Items']:
         title = genre['Name']
-        add_dir(name=title, mode=100, genre_id=genre['ID'])
+
+        add_dir(title, id, 100, ICON, genre_id=genre['ID'])
+        # add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None)
 
 
 def list_shows(genre_id):
@@ -134,20 +123,21 @@ def get_stream(id):
     json_source = json_request(url)
 
     for stream in json_source['MediaURLs']:
-        if 'AppleTV' in stream['Type']:
+        # if 'AppleTV' in stream['Type']:
+        if '480p_1mbps.mp4' in stream['Type']:
             stream_url = stream['Path']
-            stream_url = stream_url[0:stream_url.index('.m3u8')]+'.m3u8'
+            # stream_url = stream_url[0:stream_url.index('.m3u8')]+'.m3u8'
             break
 
     headers = '|User-Agent='+UA_CRACKLE
     listitem = xbmcgui.ListItem()
-    if xbmc.getCondVisibility('System.HasAddon(inputstream.adaptive)'):
-        listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
-        listitem.setProperty('inputstream.adaptive.manifest_type', 'hls')
-        listitem.setProperty('inputstream.adaptive.stream_headers', headers)
-        listitem.setProperty('inputstream.adaptive.license_key', headers)
-    else:
-        stream_url += headers
+    # if xbmc.getCondVisibility('System.HasAddon(inputstream.adaptive)'):
+    #     listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
+    #     listitem.setProperty('inputstream.adaptive.manifest_type', 'hls')
+    #     listitem.setProperty('inputstream.adaptive.stream_headers', headers)
+    #     listitem.setProperty('inputstream.adaptive.license_key', headers)
+    # else:
+    stream_url += headers
 
     listitem.setPath(stream_url)
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem)

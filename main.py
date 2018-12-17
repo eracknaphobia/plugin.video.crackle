@@ -16,19 +16,23 @@ if 'mode' in params:
 if 'type' in params:
     stream_type = urllib.unquote_plus(params["type"])
 if 'genre_id' in params:
-    stream_type = urllib.unquote_plus(params["genre_id"])
+    genre_id = urllib.unquote_plus(params["genre_id"])
 
 if mode is None:
     main_menu()
 
 elif mode == 99:
-    list_show_genre()
+    list_genre(media_id)
 
 elif mode == 100:
-    list_shows(genre_id)
+    if genre_id is not None:
+        if media_id == 'shows':
+            list_shows(genre_id)
+        elif media_id == 'movies':
+            list_movies(genre_id)
 
-elif mode == 101:
-    list_movies()
+# elif mode == 101:
+#     list_movies()
 
 elif mode == 102:
     get_episodes(media_id)

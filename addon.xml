@@ -13,8 +13,7 @@
     <description lang="en_GB">Crackle is a video streaming distributor of original web shows, Hollywood movies, and TV shows. Founded in the early 2000s as Grouper, and rebranded in 2007, Crackle is owned by Sony Pictures Entertainment.</description>
     <disclaimer lang="en_GB"></disclaimer>
       <news>
-        - Added support for inputstream adaptive
-        - Code clean up
+        - Fix for upstream changes
       </news>
     <language>en</language>
     <platform>all</platform>

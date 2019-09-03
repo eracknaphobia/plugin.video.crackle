@@ -176,7 +176,7 @@ def add_stream(name, id, stream_type, icon, fanart, info=None):
     u=sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(103)+"&type="+urllib.quote_plus(stream_type)
     liz=xbmcgui.ListItem(name)
     if fanart == None: fanart = FANART
-    liz.setArt({'icon': icon, 'thumb': icon, 'fanart': fanart})
+    liz.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
     liz.setProperty("IsPlayable", "true")
     liz.setInfo(type="Video", infoLabels={"Title": name})
     if info is not None:

@@ -103,6 +103,7 @@ def get_episodes(channel):
                 #'genre':episode['Genre'],
                 'year':episode['ReleaseYear'],
                 'mpaa':episode['Rating'],
+                'tvshowtitle':episode['ShowName'],
                 'title':title,
                 'originaltitle':title,
                 'duration':episode['Duration'],

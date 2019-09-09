@@ -99,7 +99,6 @@ def get_episodes(channel):
         id = str(episode['Id'])
         icon = episode['Images']['Img_460x460']
         fanart = episode['Images']['Img_1920x1080']
-        info = None
         info = {'plot':episode['Description'],
                 #'genre':episode['Genre'],
                 'year':episode['ReleaseYear'],
@@ -182,17 +181,14 @@ def add_stream(name, id, stream_type, icon, fanart, info=None):
     if fanart == None: fanart = FANART
     liz.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
     liz.setProperty("IsPlayable", "true")
-    liz.setInfo(type="Video", infoLabels={"Title": name})
     if info is not None:
-        liz.setInfo( type="Video", infoLabels=info)
+        liz.setInfo( type="video", infoLabels=info)
     ok = xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=liz,isFolder=False)
     xbmcplugin.setContent(addon_handle, stream_type)
     return ok
 
 
 def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None):
-    xbmc.log(ROOTDIR)
-    xbmc.log("ICON IMAGE = "+icon)
     ok = True
     u = addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
     if genre_id is not None: u += "&genre_id=%s" % genre_id
@@ -200,7 +196,7 @@ def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None):
     if fanart is not None: fanart = FANART
     liz.setArt({'icon': icon, 'thumb': icon, 'fanart': fanart})
     if info is not None:
-        liz.setInfo( type="Video", infoLabels=info)
+        liz.setInfo( type="video", infoLabels=info)
     ok = xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=liz,isFolder=True)
     xbmcplugin.setContent(addon_handle, 'tvshows')
     return ok

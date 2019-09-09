@@ -46,7 +46,8 @@ def list_movies(genre_id):
                 'mpaa':movie['Rating'],
                 'title':title,
                 'originaltitle':title,
-                'duration':movie['DurationInSeconds']
+                'duration':movie['DurationInSeconds'],
+                'mediatype': 'movie'
                 }
 
         add_stream(title,url,'movies',icon,fanart,info)
@@ -80,7 +81,8 @@ def list_shows(genre_id):
                 'mpaa':show['Rating'],
                 'title':title,
                 'originaltitle':title,
-                'duration':show['DurationInSeconds']
+                'duration':show['DurationInSeconds'],
+                'mediatype': 'tvshow'
                 }
 
         add_dir(title,url,102,icon,fanart,info)
@@ -105,7 +107,8 @@ def get_episodes(channel):
                 'originaltitle':title,
                 'duration':episode['Duration'],
                 'season':episode['Season'],
-                'episode':episode['Episode']
+                'episode':episode['Episode'],
+                'mediatype': 'episode'
                 }
 
         add_stream(title,id,'tvshows',icon,fanart,info)

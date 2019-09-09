@@ -4,6 +4,7 @@ import base64, hmac, hashlib
 from time import gmtime, strftime
 import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
+addon_url = sys.argv[0]
 addon_handle = int(sys.argv[1])
 ADDON = xbmcaddon.Addon()
 ROOTDIR = ADDON.getAddonInfo('path')
@@ -176,7 +177,7 @@ def get_auth(url):
 
 def add_stream(name, id, stream_type, icon, fanart, info=None):
     ok = True
-    u=sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(103)+"&type="+urllib.quote_plus(stream_type)
+    u=addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(103)+"&type="+urllib.quote_plus(stream_type)
     liz=xbmcgui.ListItem(name)
     if fanart == None: fanart = FANART
     liz.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
@@ -193,7 +194,7 @@ def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None):
     xbmc.log(ROOTDIR)
     xbmc.log("ICON IMAGE = "+icon)
     ok = True
-    u = sys.argv[0]+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
+    u = addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
     if genre_id is not None: u += "&genre_id=%s" % genre_id
     liz=xbmcgui.ListItem(name)
     if fanart is not None: fanart = FANART

@@ -86,7 +86,7 @@ def list_shows(genre_id):
                 'mediatype': 'tvshow'
                 }
 
-        add_dir(title,url,102,icon,fanart,info)
+        add_dir(title,url,102,icon,fanart,info,content_type='tvshows')
 
 
 def get_episodes(channel):
@@ -188,7 +188,7 @@ def add_stream(name, id, stream_type, icon, fanart, info=None):
     return ok
 
 
-def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None):
+def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None, content_type='videos'):
     ok = True
     u = addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
     if genre_id is not None: u += "&genre_id=%s" % genre_id
@@ -198,7 +198,7 @@ def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None):
     if info is not None:
         liz.setInfo( type="video", infoLabels=info)
     ok = xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=liz,isFolder=True)
-    xbmcplugin.setContent(addon_handle, 'tvshows')
+    xbmcplugin.setContent(addon_handle, content_type)
     return ok
 
 

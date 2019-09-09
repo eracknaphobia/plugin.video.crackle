@@ -193,8 +193,8 @@ def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None, content
     u = addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
     if genre_id is not None: u += "&genre_id=%s" % genre_id
     liz=xbmcgui.ListItem(name)
-    if fanart is not None: fanart = FANART
-    liz.setArt({'icon': icon, 'thumb': icon, 'fanart': fanart})
+    if fanart == None: fanart = FANART
+    liz.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
     if info is not None:
         liz.setInfo( type="video", infoLabels=info)
     ok = xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=liz,isFolder=True)

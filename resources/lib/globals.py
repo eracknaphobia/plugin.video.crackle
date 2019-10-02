@@ -179,7 +179,7 @@ def add_stream(name, id, stream_type, icon, fanart, info=None):
     ok = True
     u=addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(103)+"&type="+urllib.quote_plus(stream_type)
     liz=xbmcgui.ListItem(name)
-    if fanart == None: fanart = FANART
+    if fanart is None: fanart = FANART
     liz.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
     liz.setProperty("IsPlayable", "true")
     if info is not None:
@@ -194,7 +194,7 @@ def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None, content
     u = addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
     if genre_id is not None: u += "&genre_id=%s" % genre_id
     liz=xbmcgui.ListItem(name)
-    if fanart == None: fanart = FANART
+    if fanart is None: fanart = FANART
     liz.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
     if info is not None:
         liz.setInfo( type="video", infoLabels=info)

@@ -128,7 +128,7 @@ def get_stream(id):
 
     for stream in json_source['MediaURLs']:
         # if 'AppleTV' in stream['Type']:
-        if '480p_1mbps.mp4' in stream['Type']:
+        if any(t in stream['Type'] for t in ['480p_1mbps.mp4','480p.mp4']):
             stream_url = stream['Path']
             # stream_url = stream_url[0:stream_url.index('.m3u8')]+'.m3u8'
             break

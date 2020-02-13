@@ -2,7 +2,10 @@ import sys, os
 import urllib, requests
 import base64, hmac, hashlib
 from time import gmtime, strftime
-import xbmc, xbmcplugin, xbmcgui, xbmcaddon
+from kodi_six import xbmc, xbmcplugin, xbmcgui, xbmcaddon
+
+if sys.version_info[0] > 2:
+    urllib = urllib.parse
 
 addon_url = sys.argv[0]
 addon_handle = int(sys.argv[1])
@@ -17,7 +20,6 @@ LOCAL_STRING = ADDON.getLocalizedString
 UA_CRACKLE = 'Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0'
 UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36'
 UA_ANDROID = 'Android 4.1.1; E270BSA; Crackle 4.4.5.0'
-#PARTNER_KEY = 'TUlSTlBTRVpZREFRQVNMWA=='
 PARTNER_KEY = 'Vk5aUUdYV0ZIVFBNR1ZWVg=='
 PARTNER_ID = '77'
 BASE_URL = 'https://androidtv-api-us.crackle.com/Service.svc'
@@ -57,7 +59,8 @@ def list_movies(genre_id):
 def list_genre(id):
     url = '/genres/%s/all/US?format=json' % id
     json_source = json_request(url)
-    for genre in json_source['Items']:
+    items = sorted(json_source['Items'], key=lambda k: k['Name'].lower(), reverse=False)
+    for genre in items:
         title = genre['Name']
 
         add_dir(title, id, 100, ICON, genre_id=genre['ID'])
@@ -164,7 +167,7 @@ def json_request(url):
 
 def calc_hmac(src):
     # return hmac.new(base64.b64decode(PARTNER_KEY), src, hashlib.md5).hexdigest()
-    return hmac.new(base64.b64decode(PARTNER_KEY), src, hashlib.sha1).hexdigest()
+    return hmac.new(base64.b64decode(PARTNER_KEY), str(src).encode('utf-8'), hashlib.sha1).hexdigest()
 
 
 def get_auth(url):

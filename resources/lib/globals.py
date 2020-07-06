@@ -82,7 +82,9 @@ def list_shows(genre_id):
         title = show['Title']
         url = str(show['ID'])
         icon = show['ChannelArtTileLarge']
-        fanart = show['Images']['Img_1920x1080']
+        fanart = show['Images']['Img_TTU_1280x720']
+        if fanart == "":
+            fanart = show['Images']['Img_1920x1080']
         info = {'plot':show['Description'],
                 'genre':show['Genre'],
                 'year':show['ReleaseYear'],

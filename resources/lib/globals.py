@@ -71,6 +71,7 @@ def list_genre(id):
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
 
+
 def list_shows(genre_id):
     url = '/browse/shows/full/%s/alpha-asc/US/1000/1?format=json' % genre_id
     # url += '?pageSize=500'

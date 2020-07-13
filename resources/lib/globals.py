@@ -1,6 +1,6 @@
 import sys, os
 import urllib, requests
-import base64, hmac, hashlib
+import base64, hmac, hashlib, inputstreamhelper
 from time import gmtime, strftime
 from kodi_six import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
@@ -18,7 +18,7 @@ ICON = os.path.join(ROOTDIR,"resources","media","icon.png")
 # Addon Settings
 LOCAL_STRING = ADDON.getLocalizedString
 UA_CRACKLE = 'Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0'
-UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36'
+UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101 Firefox/78.0'
 UA_ANDROID = 'Android 4.1.1; E270BSA; Crackle 4.4.5.0'
 PARTNER_KEY = 'Vk5aUUdYV0ZIVFBNR1ZWVg=='
 PARTNER_ID = '77'
@@ -139,27 +139,36 @@ def get_movie_id(channel):
 
 
 def get_stream(id):
-    url = '/details/media/'+id+'/US?format=json'
+    url = '/details/media/%s/US?format=json' % id
     json_source = json_request(url)
-
+    stream_url = ''
+    stream_480_url = ''
     for stream in json_source['MediaURLs']:
-        # if 'AppleTV' in stream['Type']:
-        if any(t in stream['Type'] for t in ['480p_1mbps.mp4','480p.mp4']):
-            stream_url = stream['Path']
-            # stream_url = stream_url[0:stream_url.index('.m3u8')]+'.m3u8'
-            break
+        if 'Widevine_DASH' in stream['Type']:            
+            stream_url = stream['DRMPath']
+        if any(t in stream['Type'] for t in ['480p_1mbps.mp4', '480p.mp4']):
+            stream_480_url = stream['Path']
 
-    headers = '|User-Agent='+UA_CRACKLE
+    headers = 'User-Agent='+UA_WEB
     listitem = xbmcgui.ListItem()
-    # if xbmc.getCondVisibility('System.HasAddon(inputstream.adaptive)'):
-    #     listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
-    #     listitem.setProperty('inputstream.adaptive.manifest_type', 'hls')
-    #     listitem.setProperty('inputstream.adaptive.stream_headers', headers)
-    #     listitem.setProperty('inputstream.adaptive.license_key', headers)
-    # else:
-    stream_url += headers
+    lic_url = 'https://license-wv.crackle.com/raw/license/widevine/%s/us' % id
+    license_key = '%s|%s&Content-Type=application/octet-stream|R{SSM}|' % (lic_url,headers)
+    if 'mpd' in stream_url:
+        is_helper = inputstreamhelper.Helper('mpd', drm='widevine')
+        if not is_helper.check_inputstream():
+            sys.exit()
+        listitem.setPath(stream_url)
+        listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        listitem.setProperty('inputstream.adaptive.manifest_type', 'mpd')
+        listitem.setProperty('inputstream.adaptive.stream_headers', 'User-Agent=%s' % UA_WEB)
+        listitem.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+        listitem.setProperty('inputstream.adaptive.license_key', license_key)
+        listitem.setMimeType('application/dash+xml')
+        listitem.setContentLookup(False)
+    else:
+        stream_url = stream_480_url + "|" + headers
+        listitem.setPath(stream_url)
 
-    listitem.setPath(stream_url)
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem)
 
 
@@ -194,13 +203,13 @@ def get_auth(url):
 def add_stream(name, id, stream_type, icon, fanart, info=None):
     ok = True
     u=addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(103)+"&type="+urllib.quote_plus(stream_type)
-    liz=xbmcgui.ListItem(name)
+    listitem=xbmcgui.ListItem(name)
     if fanart is None: fanart = FANART
-    liz.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
-    liz.setProperty("IsPlayable", "true")
+    listitem.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
+    listitem.setProperty("IsPlayable", "true")
     if info is not None:
-        liz.setInfo( type="video", infoLabels=info)
-    ok = xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=liz,isFolder=False)
+        listitem.setInfo( type="video", infoLabels=info)
+    ok = xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=listitem,isFolder=False)
     xbmcplugin.setContent(addon_handle, stream_type)
     return ok
 
@@ -209,12 +218,12 @@ def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None, content
     ok = True
     u = addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
     if genre_id is not None: u += "&genre_id=%s" % genre_id
-    liz=xbmcgui.ListItem(name)
+    listitem=xbmcgui.ListItem(name)
     if fanart is None: fanart = FANART
-    liz.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
+    listitem.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
     if info is not None:
-        liz.setInfo( type="video", infoLabels=info)
-    ok = xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=liz,isFolder=True)
+        listitem.setInfo( type="video", infoLabels=info)
+    ok = xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=listitem,isFolder=True)
     xbmcplugin.setContent(addon_handle, content_type)
     return ok
 

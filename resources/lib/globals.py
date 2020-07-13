@@ -55,16 +55,21 @@ def list_movies(genre_id):
 
         add_stream(title,url,'movies',icon,fanart,info)
 
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+
 
 def list_genre(id):
     url = '/genres/%s/all/US?format=json' % id
     json_source = json_request(url)
-    items = sorted(json_source['Items'], key=lambda k: k['Name'].lower(), reverse=False)
-    for genre in items:
+    for genre in json_source['Items']:
         title = genre['Name']
 
         add_dir(title, id, 100, ICON, genre_id=genre['ID'])
         # add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None)
+
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
 
 
 def list_shows(genre_id):
@@ -78,7 +83,9 @@ def list_shows(genre_id):
         title = show['Title']
         url = str(show['ID'])
         icon = show['ChannelArtTileLarge']
-        fanart = show['Images']['Img_1920x1080']
+        fanart = show['Images']['Img_TTU_1280x720']
+        if fanart == "":
+            fanart = show['Images']['Img_1920x1080']
         info = {'plot':show['Description'],
                 'genre':show['Genre'],
                 'year':show['ReleaseYear'],
@@ -90,6 +97,9 @@ def list_shows(genre_id):
                 }
 
         add_dir(title,url,102,icon,fanart,info,content_type='tvshows')
+
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
 
 
 def get_episodes(channel):
@@ -116,6 +126,9 @@ def get_episodes(channel):
                 }
 
         add_stream(title,id,'tvshows',icon,fanart,info)
+
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
 
 
 def get_movie_id(channel):

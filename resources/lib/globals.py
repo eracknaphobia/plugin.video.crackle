@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, re
 import urllib, requests
 import base64, hmac, hashlib, inputstreamhelper
 from time import gmtime, strftime
@@ -10,6 +10,7 @@ if sys.version_info[0] > 2:
 addon_url = sys.argv[0]
 addon_handle = int(sys.argv[1])
 ADDON = xbmcaddon.Addon()
+KODI_VERSION = float(re.findall(r'\d{2}\.\d{1}', xbmc.getInfoLabel("System.BuildVersion"))[0])
 ROOTDIR = ADDON.getAddonInfo('path')
 FANART = os.path.join(ROOTDIR,"resources","media","fanart.jpg")
 ICON = os.path.join(ROOTDIR,"resources","media","icon.png")
@@ -158,7 +159,10 @@ def get_stream(id):
         if not is_helper.check_inputstream():
             sys.exit()
         listitem.setPath(stream_url)
-        listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        if KODI_VERSION >= 19:
+            listitem.setProperty('inputstream', 'inputstream.adaptive')
+        else:
+            listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
         listitem.setProperty('inputstream.adaptive.manifest_type', 'mpd')
         listitem.setProperty('inputstream.adaptive.stream_headers', 'User-Agent=%s' % UA_WEB)
         listitem.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')

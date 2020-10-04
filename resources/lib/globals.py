@@ -2,10 +2,7 @@ import sys, os
 import urllib, requests
 import base64, hmac, hashlib, inputstreamhelper
 from time import gmtime, strftime
-from kodi_six import xbmc, xbmcplugin, xbmcgui, xbmcaddon
-
-if sys.version_info[0] > 2:
-    urllib = urllib.parse
+import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
 addon_url = sys.argv[0]
 addon_handle = int(sys.argv[1])

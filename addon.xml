@@ -2,8 +2,8 @@
 <addon id="plugin.video.crackle" name="Crackle" version="2020.10.7+matrix.0" provider-name="eracknaphobia">
   <requires>
       <import addon="xbmc.python" version="3.0.0"/>
-      <import addon="script.module.requests" version="2.22.0"/>
-      <import addon="script.module.inputstreamhelper" version="0.3.3"/>
+      <import addon="script.module.requests"/>
+      <import addon="script.module.inputstreamhelper"/>
       <import addon="script.module.kodi-six" />
   </requires>
   <extension point="xbmc.python.pluginsource" library="main.py">

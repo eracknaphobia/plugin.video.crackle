@@ -19,7 +19,7 @@
 # -*- coding: utf-8 -*-
 
 """PseudoTV Live / IPTV Manager Integration module"""
-import os, re, json, time
+import sys, os, re, json, time
 from kodi_six    import xbmc, xbmcaddon, xbmcgui, xbmcvfs
 
 # Plugin Info
@@ -32,6 +32,7 @@ ADDON_VERSION = REAL_SETTINGS.getAddonInfo('version')
 ICON          = REAL_SETTINGS.getAddonInfo('icon')
 MONITOR       = xbmc.Monitor()
 LOGO          = os.path.join('special://home/addons/%s/'%(ADDON_ID),'resources','media','logo.png')
+PY3           = sys.version_info[0] == 3
 
 def slugify(text):
     non_url_safe = [' ','"', '#', '$', '%', '&', '+',',', '/', ':', ';', '=', '?','@', '[', '\\', ']', '^', '`','{', '|', '}', '~', "'"]
@@ -94,4 +95,4 @@ class regPseudoTV:
                 WAIT_TIME = 300
                 xbmcgui.Window(10000).clearProperty(PROP_KEY)
             if MONITOR.waitForAbort(WAIT_TIME): break
-if __name__ == '__main__': regPseudoTV().run()
+if __name__ == '__main__' and PY3: regPseudoTV().run()

@@ -32,11 +32,7 @@ def main_menu():
 
 
 def list_movies(genre_id):
-    url = '/browse/movies/full/%s/alpha-asc/US?format=json' % genre_id
-    # url = '/browse/movies/full/all/alpha-asc/US'
-    # url += '?pageSize=500'
-    # url += '&pageNumber=1'
-    # url += '&format=json'
+    url = f"/browse/movies/full/{genre_id}/alpha-asc/US?format=json"
     json_source = json_request(url)
 
     for movie in json_source['Entries']:
@@ -61,7 +57,7 @@ def list_movies(genre_id):
 
 
 def list_genre(id):
-    url = '/genres/%s/all/US?format=json' % id
+    url = f"/genres/{id}/all/US?format=json"
     json_source = json_request(url)
     for genre in json_source['Items']:
         title = genre['Name']
@@ -74,10 +70,7 @@ def list_genre(id):
 
 
 def list_shows(genre_id):
-    url = '/browse/shows/full/%s/alpha-asc/US/1000/1?format=json' % genre_id
-    # url += '?pageSize=500'
-    # url += '&pageNumber=1'
-    # url += '&format=json'
+    url = f"/browse/shows/full/{genre_id}/alpha-asc/US/1000/1?format=json"
     json_source = json_request(url)
 
     for show in json_source['Entries']:
@@ -104,7 +97,7 @@ def list_shows(genre_id):
 
 
 def get_episodes(channel):
-    url = '/channel/'+channel+'/playlists/all/US?format=json'
+    url = f"/channel/{channel}/playlists/all/US?format=json"
     json_source = json_request(url)
 
     for episode in json_source['Playlists'][0]['Items']:
@@ -132,14 +125,14 @@ def get_episodes(channel):
 
 
 def get_movie_id(channel):
-    url = '/channel/'+str(channel)+'/playlists/all/US?format=json'
+    url = f"/channel/{channel}/playlists/all/US?format=json"
     json_source = json_request(url)
 
     return str(json_source['Playlists'][0]['Items'][0]['MediaInfo']['Id'])
 
 
 def get_stream(id):
-    url = '/details/media/%s/US?format=json' % id
+    url = f"/details/media/{id}/US?format=json"
     json_source = json_request(url)
     stream_url = ''
     stream_480_url = ''
@@ -151,8 +144,8 @@ def get_stream(id):
 
     headers = 'User-Agent='+UA_WEB
     listitem = xbmcgui.ListItem()
-    lic_url = 'https://license-wv.crackle.com/raw/license/widevine/%s/us' % id
-    license_key = '%s|%s&Content-Type=application/octet-stream|R{SSM}|' % (lic_url,headers)
+    lic_url = f"https://license-wv.crackle.com/raw/license/widevine/{id}/us"
+    license_key = f"{lic_url}|{headers}&Content-Type=application/octet-stream|R{{SSM}}|"
     if 'mpd' in stream_url:
         is_helper = inputstreamhelper.Helper('mpd', drm='widevine')
         if not is_helper.check_inputstream():
@@ -163,7 +156,7 @@ def get_stream(id):
         else:
             listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
         listitem.setProperty('inputstream.adaptive.manifest_type', 'mpd')
-        listitem.setProperty('inputstream.adaptive.stream_headers', 'User-Agent=%s' % UA_WEB)
+        listitem.setProperty('inputstream.adaptive.stream_headers', f"User-Agent={UA_WEB}")
         listitem.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
         listitem.setProperty('inputstream.adaptive.license_key', license_key)
         listitem.setMimeType('application/dash+xml')
@@ -198,7 +191,7 @@ def calc_hmac(src):
 def get_auth(url):
     timestamp = strftime('%Y%m%d%H%M', gmtime())
     # encoded_url = str(calc_hmac(url+"|"+timestamp)).upper() + "|" + timestamp + "|" + PARTNER_ID
-    encoded_url = '%s|%s|%s|1' % (calc_hmac(url + "|" + timestamp).upper(), timestamp, PARTNER_ID)
+    encoded_url = f"{calc_hmac(f'{url}|{timestamp}').upper()}|{timestamp}|{PARTNER_ID}|1"
 
     return encoded_url
 
@@ -220,7 +213,7 @@ def add_stream(name, id, stream_type, icon, fanart, info=None):
 def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None, content_type='videos'):
     ok = True
     u = addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
-    if genre_id is not None: u += "&genre_id=%s" % genre_id
+    if genre_id is not None: u += f"&genre_id={genre_id}"
     listitem=xbmcgui.ListItem(name)
     if fanart is None: fanart = FANART
     listitem.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})

@@ -10,7 +10,6 @@ if sys.version_info[0] > 2:
 addon_url = sys.argv[0]
 addon_handle = int(sys.argv[1])
 ADDON = xbmcaddon.Addon()
-KODI_VERSION = float(re.findall(r'\d{2}\.\d{1}', xbmc.getInfoLabel("System.BuildVersion"))[0])
 ROOTDIR = ADDON.getAddonInfo('path')
 FANART = os.path.join(ROOTDIR,"resources","media","fanart.jpg")
 ICON = os.path.join(ROOTDIR,"resources","media","icon.png")
@@ -19,17 +18,18 @@ ICON = os.path.join(ROOTDIR,"resources","media","icon.png")
 # Addon Settings
 LOCAL_STRING = ADDON.getLocalizedString
 UA_CRACKLE = 'Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0'
-UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101 Firefox/78.0'
+UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36'
 UA_ANDROID = 'Android 4.1.1; E270BSA; Crackle 4.4.5.0'
 PARTNER_KEY = 'Vk5aUUdYV0ZIVFBNR1ZWVg=='
 PARTNER_ID = '77'
 BASE_URL = 'https://androidtv-api-us.crackle.com/Service.svc'
+WEB_KEY = '5FE67CCA-069A-42C6-A20F-4B47A8054D46'
 
 
 def main_menu():
-    add_dir('Movies', 'movies', 99, ICON)
-    add_dir('TV', 'shows', 99, ICON)
-
+    add_dir(LOCAL_STRING(30001), 'movies', 99, ICON)
+    add_dir(LOCAL_STRING(30002), 'shows', 99, ICON)
+    add_dir(LOCAL_STRING(30003), 'search', 104, ICON)
 
 def list_movies(genre_id):
     url = f"/browse/movies/full/{genre_id}/alpha-asc/US?format=json"
@@ -151,10 +151,7 @@ def get_stream(id):
         if not is_helper.check_inputstream():
             sys.exit()
         listitem.setPath(stream_url)
-        if KODI_VERSION >= 19:
-            listitem.setProperty('inputstream', 'inputstream.adaptive')
-        else:
-            listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        listitem.setProperty('inputstream', 'inputstream.adaptive')
         listitem.setProperty('inputstream.adaptive.manifest_type', 'mpd')
         listitem.setProperty('inputstream.adaptive.stream_headers', f"User-Agent={UA_WEB}")
         listitem.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
@@ -166,6 +163,45 @@ def get_stream(id):
         listitem.setPath(stream_url)
 
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem)
+
+def search(search_phrase):
+    url = f"https://prod-api.crackle.com/contentdiscovery/search/{search_phrase}" \
+          "?useFuzzyMatching=false" \
+          "&enforcemediaRights=true" \
+          "&pageNumber=1&pageSize=20" \
+          "&contentType=Channels" \
+          "&searchFields=Title%2CCast"
+    headers = {
+        'User-Agent': UA_WEB,
+        'X-Crackle-Platform': WEB_KEY,
+    }
+
+    r = requests.get(url, headers=headers)
+    xbmc.log(r.text)
+    for item in r.json()['data']['items']:
+        metadata = item['metadata'][0]
+        title = metadata['title']
+        url = str(item['externalId'])
+        icon = get_image(item['assets']['images'], 220, 330)
+        fanart = get_image(item['assets']['images'], 1920, 1080)
+        info = {'plot': metadata['longDescription'],
+                'title':title,
+                'originaltitle':title,
+                }
+
+        if item['type'] == 'Movie':
+            add_stream(title,url,'movies',icon,fanart,info)
+        else:
+            add_dir(title, url, 102, icon, fanart, info, content_type='tvshows')
+
+def get_image(images, width, height):
+    img = ICON
+    for image in images:
+        if image['width'] == width and image['height'] == height:
+            img = image['url']
+            break
+
+    return img
 
 
 def json_request(url):

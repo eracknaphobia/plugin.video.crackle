@@ -38,7 +38,7 @@ elif mode == 102:
     get_episodes(media_id)
 
 elif mode == 103:
-    if stream_type == "movies": media_id = get_movie_id(media_id)
+    #if stream_type == "movies": media_id = get_movie_id(media_id)
     get_stream(media_id)
 
 elif mode == 104:

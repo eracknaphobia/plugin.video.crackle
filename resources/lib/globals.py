@@ -147,7 +147,7 @@ def get_stream(id):
             stream_url = stream['url']
             lic_url = stream['drm']['keyUrl']
         
-    headers = 'User-Agent='+UA_WEB
+    #headers = 'User-Agent='+UA_WEB
     listitem = xbmcgui.ListItem()
     #lic_url = f"https://license-wv.crackle.com/raw/license/widevine/{id}/us"
     #lic_url = "https://widevine-license.crackle.com"
@@ -167,10 +167,26 @@ def get_stream(id):
         listitem.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
 
         license_headers = {
-            'User-Agent': UA_WEB,
+            'User-Agent': UA_WEB,            
             'Content-Type': 'application/octet-stream',
-            'Origin': 'https://www.crackle.com'
+            'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'accept': '*/*',
+            'origin': 'https://www.crackle.com',
+            'sec-fetch-site': 'same-site',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-dest': 'empty',
+            'referer': 'https://www.crackle.com/',
+            'accept-encoding': 'gzip, deflate, br, zstd',
+            'accept-language': 'en-US,en;q=0.9',
+            'priority': 'u=1, i'
         }
+
+        #r = requests.post(lic_url, headers=license_headers, data='\x08\x04', verify=False)
+
+        #sys.exit()
+
         from urllib.parse import urlencode
         license_config = { # for Python < v3.7 you should use OrderedDict to keep order
             'license_server_url': lic_url,
@@ -178,7 +194,9 @@ def get_stream(id):
             'post_data': 'R{SSM}',
             'response_data': 'R'
         }
+        xbmc.log('|'.join(license_config.values()))
         listitem.setProperty('inputstream.adaptive.license_key', '|'.join(license_config.values()))
+        listitem.setProperty('inputstream.adaptive.manifest_headers', urlencode(license_headers))
     else:
         # Return Error message
         sys.exit()
@@ -186,20 +204,15 @@ def get_stream(id):
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem)
 
 def search(search_phrase):
-    url = f"https://prod-api.crackle.com/contentdiscovery/search/{search_phrase}" \
+    url = f"/contentdiscovery/search/{search_phrase}" \
           "?useFuzzyMatching=false" \
           "&enforcemediaRights=true" \
           "&pageNumber=1&pageSize=20" \
           "&contentType=Channels" \
           "&searchFields=Title%2CCast"
-    headers = {
-        'User-Agent': UA_WEB,
-        'X-Crackle-Platform': WEB_KEY,
-    }
-
-    r = requests.get(url, headers=headers)
-    xbmc.log(r.text)
-    for item in r.json()['data']['items']:        
+    
+    json_source = json_request(url)
+    for item in json_source['data']['items']:        
         metadata = item['metadata'][0]
         title = metadata['title']
         #url = str(item['externalId'])

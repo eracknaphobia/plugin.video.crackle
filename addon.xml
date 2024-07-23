@@ -10,7 +10,7 @@
         <provides>video</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
-    <platform>all</platform>
+    <platform>android</platform>
     <summary lang="en_GB">Crackle delivers popular, award-winning TV, movies and originals. With no limit to how much you can watch across all your devices, you can binge all you want, wherever you want.</summary>
     <description lang="en_GB">Crackle is a video streaming distributor of original web shows, Hollywood movies, and TV shows. Founded in the early 2000s as Grouper, and rebranded in 2007, Crackle is owned by Sony Pictures Entertainment.</description>
       <news>
@@ -20,7 +20,6 @@
         - Added settings for page size and sort by
       </news>
     <language>en</language>
-    <platform>all</platform>
     <license>GPL-2.0-or-later</license>
     <forum></forum>
     <source>https://github.com/eracknaphobia/plugin.video.crackle</source>

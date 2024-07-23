@@ -1,6 +1,8 @@
-import sys, os, re
+import sys, os
 import urllib, requests
-import base64, hmac, hashlib, inputstreamhelper
+import inputstreamhelper
+from urllib.parse import urlparse
+from urllib.parse import urlencode
 from time import gmtime, strftime
 from kodi_six import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
@@ -14,19 +16,56 @@ ROOTDIR = ADDON.getAddonInfo('path')
 FANART = os.path.join(ROOTDIR,"resources","media","fanart.jpg")
 ICON = os.path.join(ROOTDIR,"resources","media","icon.png")
 
-
 # Addon Settings
 LOCAL_STRING = ADDON.getLocalizedString
 UA_CRACKLE = 'Crackle/7.60 CFNetwork/808.3 Darwin/16.3.0'
 UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36'
 UA_ANDROID = 'Android 4.1.1; E270BSA; Crackle 4.4.5.0'
-PARTNER_KEY = 'Vk5aUUdYV0ZIVFBNR1ZWVg=='
-PARTNER_ID = '77'
-#BASE_URL = 'https://androidtv-api-us.crackle.com/Service.svc'
 BASE_URL = 'https://prod-api.crackle.com'
 # found in https://prod-api.crackle.com/appconfig (platformId)
 WEB_KEY = '5FE67CCA-069A-42C6-A20F-4B47A8054D46'
+PAGE_SIZE = ADDON.getSetting(id="page_size")
+SORT = int(ADDON.getSetting(id="sort"))
+SORT_ORDER = [
+    "latest",
+    "alpha-asc",
+    "alpha-desc"
+]
 
+GENRES = {
+    "All",
+    "Action",
+    "Adventure",
+    "Anime",
+    "Biography",
+    "Black Entertainment",
+    "British",
+    "Classics",
+    "Comedy",
+    "Crackle Original",
+    "Crime",
+    "Documentary",
+    "Drama",
+    "Faith-Based",
+    "Family",
+    "Fantasy",
+    "Foreign Language",
+    "Holiday",
+    "Horror",
+    "Lifestyle",
+    "Music / Musicals",
+    "Mystery",
+    "Reality Show",
+    "Romance",
+    "Sci-Fi",
+    "Sports",
+    "Stand-Up",
+    "Thriller",
+    "Unidentified / Unexplained",
+    "Variety / Talk / Games",
+    "Ware / Military",
+    "Western"
+    }
 
 
 def main_menu():
@@ -34,200 +73,94 @@ def main_menu():
     add_dir(LOCAL_STRING(30002), 'shows', 99, ICON)
     add_dir(LOCAL_STRING(30003), 'search', 104, ICON)
 
-def list_movies(genre_id):
-    url = f"/browse/movies/full/{genre_id}/alpha-asc/US?format=json"
-    json_source = json_request(url)    
-    
-    for movie in json_source['Entries']:
-        title = movie['Title']
-        url = str(movie['ID'])
-        icon = movie['ChannelArtTileLarge']
-        fanart = movie['Images']['Img_1920x1080']
-        info = {'plot':movie['Description'],
-                'genre':movie['Genre'],
-                'year':movie['ReleaseYear'],
-                'mpaa':movie['Rating'],
-                'title':title,
-                'originaltitle':title,
-                'duration':movie['DurationInSeconds'],
-                'mediatype': 'movie'
-                }
-
-        add_stream(title,url,'movies',icon,fanart,info)
-
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
-
-
 def list_genre(id):
-    #url = f"/genres/{id}/all/US?format=json"    
-    #url = f'/browse/{id}?enforcemediaRights=true&sortOrder=latest&pageNumber=1&pageSize=45'
-    url = 'https://prod-api.crackle.com/browse/movies?genreType=Action&enforcemediaRights=true&sortOrder=latest&pageNumber=1&pageSize=45'
-    json_source = json_request(url)
-    for genre in json_source['data']['items']:
-        title = genre['Name']
-
-        add_dir(title, id, 100, ICON, genre_id=genre['ID'])
-        # add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None)
+    for genre in GENRES:
+        add_dir(genre, id, 100, ICON, genre_id=genre)
 
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
 
-
-def list_shows(genre_id):
-    url = f"/browse/shows/full/{genre_id}/alpha-asc/US/1000/1?format=json"
-    json_source = json_request(url)
-
-    for show in json_source['Entries']:
-        title = show['Title']
-        url = str(show['ID'])
-        icon = show['ChannelArtTileLarge']
-        fanart = show['Images']['Img_TTU_1280x720']
-        if fanart == "":
-            fanart = show['Images']['Img_1920x1080']
-        info = {'plot':show['Description'],
-                'genre':show['Genre'],
-                'year':show['ReleaseYear'],
-                'mpaa':show['Rating'],
-                'title':title,
-                'originaltitle':title,
-                'duration':show['DurationInSeconds'],
-                'mediatype': 'tvshow'
-                }
-
-        add_dir(title,url,102,icon,fanart,info,content_type='tvshows')
-
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
-
-
-def get_episodes(channel):
-    url = f"/channel/{channel}/playlists/all/US?format=json"
-    json_source = json_request(url)
-
-    for episode in json_source['Playlists'][0]['Items']:
-        episode = episode['MediaInfo']
-        title = episode['Title']
-        id = str(episode['Id'])
-        icon = episode['Images']['Img_460x460']
-        fanart = episode['Images']['Img_1920x1080']
-        info = {'plot':episode['Description'],
-                #'genre':episode['Genre'],
-                'year':episode['ReleaseYear'],
-                'mpaa':episode['Rating'],
-                'tvshowtitle':episode['ShowName'],
-                'title':title,
-                'originaltitle':title,
-                'duration':episode['Duration'],
-                'season':episode['Season'],
-                'episode':episode['Episode'],
-                'mediatype': 'episode'
-                }
-
-        add_stream(title,id,'tvshows',icon,fanart,info)
-
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
-
-
-def get_movie_id(channel):
-    url = f"/channel/{channel}/playlists/all/US?format=json"
-    json_source = json_request(url)
-
-    return str(json_source['Playlists'][0]['Items'][0]['MediaInfo']['Id'])
-
-
-def get_stream(id):
-    #url = f"/details/media/{id}/US?format=json"
-    id = "8f249799-3599-4bbf-afb3-4f6401b9059d"
-    url = f'/playback/vod/{id}'
-    json_source = json_request(url)
-    stream_url = ''    
-    for stream in json_source['data']['streams']:
-        if 'widevine' in stream['type']:            
-            stream_url = stream['url']
-            lic_url = stream['drm']['keyUrl']
-        
-    #headers = 'User-Agent='+UA_WEB
-    listitem = xbmcgui.ListItem()
-    #lic_url = f"https://license-wv.crackle.com/raw/license/widevine/{id}/us"
-    #lic_url = "https://widevine-license.crackle.com"
-    #license_key = f"{lic_url}|{headers}&Content-Type=application/octet-stream&Origin=https://www.crackle.com|R{{SSM}}|"
-    if 'mpd' in stream_url:
-        stream_url = get_stream_session(stream_url)
-        is_helper = inputstreamhelper.Helper('mpd', drm='widevine')
-        if not is_helper.check_inputstream():
-            sys.exit()
+def list_movies_shows(type, genre, page_num):    
+    url = f'/browse/{type}?enforcemediaRights=true&sortOrder={SORT_ORDER[SORT]}&pageNumber={page_num}&pageSize={PAGE_SIZE}'
+    if genre != "All":
+        url += f'&genreType={genre}'
     
-        listitem.setPath(stream_url)
-        listitem.setMimeType('application/dash+xml')
-        listitem.setContentLookup(False)
+    if page_num > 1:
+        add_dir("<< Prev", type, 98, ICON, None, None, None, page_num-1)
+        #add_dir("Home", 'home', 1, ICON)
 
-        listitem.setProperty('inputstream', 'inputstream.adaptive')
-        #listitem.setProperty('inputstream.adaptive.manifest_type', 'mpd') # Deprecated on Kodi 21
-        listitem.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+    add_dir("Next >>", type, 98, ICON, None, None, None, page_num+1)
 
-        license_headers = {
-            'User-Agent': UA_WEB,            
-            'Content-Type': 'application/octet-stream',
-            'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'accept': '*/*',
-            'origin': 'https://www.crackle.com',
-            'sec-fetch-site': 'same-site',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-dest': 'empty',
-            'referer': 'https://www.crackle.com/',
-            'accept-encoding': 'gzip, deflate, br, zstd',
-            'accept-language': 'en-US,en;q=0.9',
-            'priority': 'u=1, i'
-        }
+    json_source = json_request(url)  
+    list_results(json_source['data']['items'])
 
-        #r = requests.post(lic_url, headers=license_headers, data='\x08\x04', verify=False)
-
-        #sys.exit()
-
-        from urllib.parse import urlencode
-        license_config = { # for Python < v3.7 you should use OrderedDict to keep order
-            'license_server_url': lic_url,
-            'headers': urlencode(license_headers),
-            'post_data': 'R{SSM}',
-            'response_data': 'R'
-        }
-        xbmc.log('|'.join(license_config.values()))
-        listitem.setProperty('inputstream.adaptive.license_key', '|'.join(license_config.values()))
-        listitem.setProperty('inputstream.adaptive.manifest_headers', urlencode(license_headers))
-    else:
-        # Return Error message
-        sys.exit()
-
-    xbmcplugin.setResolvedUrl(addon_handle, True, listitem)
 
 def search(search_phrase):
     url = f"/contentdiscovery/search/{search_phrase}" \
           "?useFuzzyMatching=false" \
           "&enforcemediaRights=true" \
-          "&pageNumber=1&pageSize=20" \
+          f"&pageNumber=1&pageSize={PAGE_SIZE}" \
           "&contentType=Channels" \
           "&searchFields=Title%2CCast"
     
     json_source = json_request(url)
-    for item in json_source['data']['items']:        
+    list_results(json_source['data']['items'])
+
+
+def list_results(list):           
+    for item in list:
         metadata = item['metadata'][0]
-        title = metadata['title']
-        #url = str(item['externalId'])
-        url = item['id']
+        title = metadata['title']        
+        content_id = item['id']        
         icon = get_image(item['assets']['images'], 220, 330)
         fanart = get_image(item['assets']['images'], 1920, 1080)
         info = {'plot': metadata['longDescription'],
                 'title':title,
                 'originaltitle':title,
                 }
-
-        if item['type'] == 'Movie':
-            add_stream(title,url,'movies',icon,fanart,info)
+        
+        if 'type' in item and 'movie' in item['type'].lower():
+            add_stream(title, content_id,'movies',icon,fanart,info)            
         else:
-            add_dir(title, url, 102, icon, fanart, info, content_type='tvshows')
+            add_dir(title, content_id, 102, icon, fanart, info, content_type='tvshows', icon_url=icon)
+
+def get_children(content_id, icon_url):
+    url = f"/content/{content_id}/children"
+    json_source = json_request(url)
+    print(str(json_source))
+    for item in json_source['data']:      
+        if item['type'].lower() == "season":
+            title = item['title']
+            id = str(item['id'])           
+            xbmc.log(f'icon URL: {icon_url}')
+            add_dir(title,id,102,icon_url,FANART,content_type='tvshows')        
+        else:
+            title = item['title']
+            id = str(item['id'])
+            icon = get_image(item['images'], 400, 224)
+            fanart = get_image(item['images'], 1920, 1080)
+            info = {'plot':item['shortDescription'],                                
+                    'title':title,
+                    'originaltitle':title,
+                    'duration':item['duration'],
+                    'season':item['seasonNumber'],
+                    'episode':item['episodeNumber'],
+                    'mediatype': 'episode'
+                    }
+
+            add_stream(title,id,'tvshows',icon,fanart,info)
+
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
+
+
+def get_movie_id(content_id):
+    url = f"/content/{content_id}/children"
+    json_source = json_request(url)
+    print(str(json_source))
+    for item in json_source['data']:                      
+        id = str(item['id']) 
+        break
+    return id
 
 def get_image(images, width, height):
     img = ICON
@@ -247,20 +180,79 @@ def json_request(url):
         'X-Crackle-Platform': WEB_KEY,
     }
 
-    r = requests.get(url, headers=headers, verify=False)
-    xbmc.log(r.text)
+    r = requests.get(url, headers=headers)
+    if not r.ok:
+        dialog = xbmcgui.Dialog()
+        msg = r.json()['error']['message']        
+        dialog.notification(LOCAL_STRING(30270), msg, ICON, 5000, False)
+        sys.exit()
+
     return r.json()
 
-def get_stream_session(url):
-    #https://prod-vod-cdn1.crackle.com/v1/session/ab95b45b71c711ddf59f86e4e6bea571f56e1289/v2mt-prod-crackle-cloudfront/fef95e6b5ee695e858b64691c95f580f/us-west-2/out/v1/a9bb5767d92d45b5bc71f526ff968a27/cc1a04f1519a4e01acf1471c93fb6e40/84df441594d74061995f0a3fd170d3e5/index.mpd
-    xbmc.log(f"Get Session from stream:{url}")     
+def get_stream(id):    
+    url = f'/playback/vod/{id}'
+    json_source = json_request(url)
+    stream_url = ''    
+    for stream in json_source['data']['streams']:
+        if 'widevine' in stream['type']:            
+            stream_url = stream['url']
+            lic_url = stream['drm']['keyUrl']
+        
+    
+    listitem = xbmcgui.ListItem()
+    if 'mpd' in stream_url:
+        stream_url = get_stream_session(stream_url)
+        is_helper = inputstreamhelper.Helper('mpd', drm='widevine')
+        if not is_helper.check_inputstream():
+            sys.exit()
+    
+        listitem.setPath(stream_url)
+        listitem.setMimeType('application/dash+xml')
+        listitem.setContentLookup(False)
+
+        listitem.setProperty('inputstream', 'inputstream.adaptive')
+        #listitem.setProperty('inputstream.adaptive.manifest_type', 'mpd') # Deprecated on Kodi 21
+        listitem.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+
+        license_headers = {
+            'User-Agent': UA_WEB,            
+            'Content-Type': 'application/octet-stream',            
+            'origin': 'https://www.crackle.com',
+            'referer': 'https://www.crackle.com/'
+        }
+        
+        license_config = { # for Python < v3.7 you should use OrderedDict to keep order
+            'license_server_url': lic_url,
+            'headers': urlencode(license_headers),
+            'post_data': 'R{SSM}',
+            'response_data': 'R'
+        }
+        xbmc.log('|'.join(license_config.values()))
+        listitem.setProperty('inputstream.adaptive.license_key', '|'.join(license_config.values()))
+        listitem.setProperty('inputstream.adaptive.manifest_headers', urlencode(license_headers))
+    else:
+        # Return Error message
+        sys.exit()
+
+    xbmcplugin.setResolvedUrl(addon_handle, True, listitem)
+
+def get_stream_session(url):            
     headers = {
         'User-Agent': UA_WEB,
     }
 
     r = requests.post(url, headers=headers, json={}, verify=False)
-    xbmc.log(r.text)
-    return f"https://prod-vod-cdn1.crackle.com{r.json()['manifestUrl']}"
+    if r.ok:
+        stream_url = r.json()['manifestUrl']
+        if 'https:' not in stream_url:
+            # Get domain from url
+            parsed_url = urlparse(url)
+            scheme = parsed_url.scheme
+            netloc = parsed_url.netloc
+            full_domain = f"{scheme}://{netloc}"
+            stream_url = f"{full_domain}{stream_url}"
+    
+    return stream_url
 
 
 def add_stream(name, id, stream_type, icon, fanart, info=None):
@@ -277,10 +269,12 @@ def add_stream(name, id, stream_type, icon, fanart, info=None):
     return ok
 
 
-def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None, content_type='videos'):
+def add_dir(name, id, mode, icon, fanart=None, info=None, genre_id=None, page_num=None, icon_url=None, content_type='videos'):
     ok = True
     u = addon_url+"?id="+urllib.quote_plus(id)+"&mode="+str(mode)
     if genre_id is not None: u += f"&genre_id={genre_id}"
+    if page_num is not None: u += f"&page_num={page_num}"
+    if icon_url is not None: u += f"&icon_url={icon_url}"
     listitem=xbmcgui.ListItem(name)
     if fanart is None: fanart = FANART
     listitem.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})

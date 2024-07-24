@@ -4,3 +4,4 @@
 [![Contributors](https://img.shields.io/github/contributors/eracknaphobia/plugin.video.crackle.svg)](https://github.com/eracknaphobia/plugin.video.crackle/graphs/contributors)
 
 Watch Crackle thru Kodi
+*Only on Android Devices
